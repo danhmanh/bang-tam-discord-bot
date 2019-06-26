@@ -5,8 +5,7 @@ module DiscordHelper
       embed.description = description
       embed.timestamp = Time.at(Time.now.to_i)
 
-      embed.author = Discordrb::Webhooks::EmbedAuthor.new(name: "Băng Tâm Bot")
-      embed.footer = Discordrb::Webhooks::EmbedFooter.new(text: "made by rain with love")
+      embed.footer = Discordrb::Webhooks::EmbedFooter.new(text: "made by rain with love 💕")
     end
   end
 end
