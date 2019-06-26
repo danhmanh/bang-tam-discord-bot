@@ -11,6 +11,7 @@ require_relative "sound_of_text"
 require_relative "weather_api"
 require_relative "wit_api"
 require_relative "crawler_chords"
+require_relative "discord_helper"
 
 class Bot
 
@@ -20,7 +21,7 @@ class Bot
   WIT_ACCESS_TOKEN = ENV.fetch("WIT_ACCESS_TOKEN")
   WEATHER_APP_ID = ENV.fetch("WEATHER_APP_ID")
 
-  bot = Discordrb::Commands::CommandBot.new token: TOKEN, client_id: CLIENT_ID, prefix: "."
+  bot = Discordrb::Commands::CommandBot.new token: TOKEN, client_id: CLIENT_ID, prefix: ","
 
   # puts bot.invite_url
 
@@ -35,37 +36,22 @@ class Bot
     end
   end
 
-  bot.command :private do |event, type|
-    user = event.user
-    private_channel = event.server.create_channel(user.username, 2)
-    event.server.move(event.user.id, private_channel.id)
-    private_channel.delete if private_channel.users.count == 0
-  end
+  # bot.command :private do |event, type|
+  #   user = event.user
+  #   private_channel = event.server.create_channel(user.username, 2)
+  #   event.server.move(event.user.id, private_channel.id)
+  #   private_channel.delete if private_channel.users.count == 0
+  # end
 
   bot.command :chord do |event, *args|
     song_name = args.join(" ")
     arr = CrawlerChords.search_song song_name
-
-    event.channel.send_embed do |embed|
-      embed.colour = 0x66e35c
-      embed.description = CrawlerChords.get_result_search arr
-      embed.timestamp = Time.at(Time.now.to_i)
-
-      embed.author = Discordrb::Webhooks::EmbedAuthor.new(name: "Băng Tâm Bot")
-      embed.footer = Discordrb::Webhooks::EmbedFooter.new(text: "made by rain with love")
-    end
+    DiscordHelper.embed_message event.channel, CrawlerChords.get_result_search(arr)
 
     event.user.await(:choice) do |choice_event|
       choice = choice_event.message.content.to_i
       url = arr.select{|song| song[:index] == choice}.first[:url]
-      event.channel.send_embed do |embed|
-        embed.colour = 0x66e35c
-        embed.description = CrawlerChords.get_lyrics(url)
-        embed.timestamp = Time.at(Time.now.to_i)
-
-        embed.author = Discordrb::Webhooks::EmbedAuthor.new(name: "Băng Tâm Bot")
-        embed.footer = Discordrb::Webhooks::EmbedFooter.new(text: "made by rain with love")
-      end
+      DiscordHelper.embed_message event.channel, CrawlerChords.get_lyrics(url)
     end
 
     nil
@@ -81,7 +67,7 @@ class Bot
       if guess_event.message.content.start_with? "="
         user = guess_event.message.user
         guess = guess_event.message.content.delete("=").to_i
-        if guess == first_num + sec_num * 0
+        if guess == first_num + sec_num
           begin
             DB.add_point(user)
             current_point = DB.get_point(user)
@@ -114,10 +100,6 @@ class Bot
     event.respond "Nếu em là #{username}, em sẽ chọn #{choice}"
   end
 
-  bot.command :test do |event|
-    binding.pry
-  end
-
   bot.command :trivia do |event|
     event.respond "Trả lời bằng dấu = phía trước anh chị nhé !"
     start_time = Time.now
@@ -139,18 +121,6 @@ class Bot
 
     question_respond = "Question: #{question}\n#{choice_respond}"
     message = event.respond question_respond
-    EMOJI_ONE = "\x31\xE2\x83\xA3"
-    EMOJI_TWO = "\x32\xE2\x83\xA3"
-    EMOJI_THREE = "\x33\xE2\x83\xA3"
-    EMOJI_FOUR = "\x34\xE2\x83\xA3"
-
-    message.react EMOJI_ONE
-    message.react EMOJI_TWO
-    message.react EMOJI_THREE
-    message.react EMOJI_FOUR
-
-
-
 
     event.user.await(:answer) do |answer_event|
 
@@ -158,16 +128,14 @@ class Bot
 
         answer = answer_event.message.content.delete("=").to_i
         user = answer_event.user
-        binding.pry
         if choices[answer-1].eql? data["correct_answer"]
-          # answer_event.respond "You 're right!"
           DB.add_point(user)
           current_point = DB.get_point(user)
 
           respond = "<@#{user.id}> trả lời chính xác. Bạn đang có #{current_point}p."
           answer_event.respond respond
         else
-          answer_event.respond "Vãi xoài !\nCâu trả nhời đúng nà: #{data["correct_answer"]}. Lần sau biết thì thưa thốt, không biết thì dựa cột mà nghe, nhá !"
+          answer_event.respond "Vãi xoài !\nCâu trả nhời đúng nà: **#{data["correct_answer"]}**."
         end
 
       true
@@ -213,16 +181,29 @@ class Bot
     nil
   end
 
-  bot.command :cfs do |event, *args|
-    sentence = args.join(" ")
-    cfs_channel_id = 588263217042554891
-    id = DB.add_confession sentence
+  # bot.command :cfs do |event, *args|
+  #   sentence = args.join(" ")
+  #   cfs_channel_id = 588263217042554891
+  #   id = DB.add_confession sentence
 
-    bot.send_message(cfs_channel_id, DB.get_confession(id))
+  #   bot.send_message(cfs_channel_id, DB.get_confession(id))
+  # end
+
+  bot.command :ping do |event|
+    message = DiscordHelper.embed_message event.channel, "🏓 Pong!"
+    message.edit DiscordHelper.embed_message event.channel, "🏓 Pong! #{Time.now - event.timestamp} s"
+  end
+
+  bot.command :alert do |event, *args|
+    event.message.react "🕒"
+    time = args[0].to_i * 60
+    sleep(time)
+    event.respond "<@#{event.message.user.id}>, dậy đi bạn nhỏ ơi 🙃"
+  end
+
+  bot.command :creator do |event|
+    binding.pry
   end
 
   bot.run
 end
-
-
-
