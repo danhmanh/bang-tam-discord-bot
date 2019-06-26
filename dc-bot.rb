@@ -5,6 +5,7 @@ require "sequel"
 require "wit"
 require "mechanize"
 require "dotenv"
+require "dentaku"
 
 require_relative "db"
 require_relative "sound_of_text"
@@ -21,9 +22,24 @@ class Bot
   WIT_ACCESS_TOKEN = ENV.fetch("WIT_ACCESS_TOKEN")
   WEATHER_APP_ID = ENV.fetch("WEATHER_APP_ID")
 
-  bot = Discordrb::Commands::CommandBot.new token: TOKEN, client_id: CLIENT_ID, prefix: ","
+  bot = Discordrb::Commands::CommandBot.new token: TOKEN, client_id: CLIENT_ID, prefix: ",", ignore_bots: false
+  calculator = Dentaku::Calculator.new
 
-  # puts bot.invite_url
+  puts bot.invite_url
+  # Quick math
+  MINATO = 392833205348204546
+  bot.message(from: MINATO, in: 507536460560465940) do |event|
+    unless event.message.embeds.empty?
+      title = event.message.embeds[0].author.name
+
+      if title.include?("Quick math")
+        question = event.message.embeds[0].description
+        math_str = question.split("\n").first
+        DiscordHelper.embed_message event.channel, "#{calculator.evaluate(math_str)}, tin em đi, chắc chắn đúng 🙃"
+      end
+
+    end
+  end
 
   bot.mention do |event|
     message = event.message.content.delete("<@582975188719894583>").strip
@@ -35,6 +51,8 @@ class Bot
       event.message.react "\u2753"
     end
   end
+
+
 
   # bot.command :private do |event, type|
   #   user = event.user
