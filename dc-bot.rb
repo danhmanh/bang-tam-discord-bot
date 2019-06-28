@@ -28,16 +28,42 @@ class Bot
   puts bot.invite_url
   # Quick math
   MINATO = 392833205348204546
-  bot.message(from: MINATO, in: 507536460560465940) do |event|
+  RDVN_CHANNEL = 507536460560465940
+  DEV_CHANNEL = 585358453573156867
+
+  bot.message(from: MINATO, in: RDVN_CHANNEL) do |event|
     unless event.message.embeds.empty?
       title = event.message.embeds[0].author.name
 
       if title.include?("Quick math")
-        question = event.message.embeds[0].description
-        math_str = question.split("\n").first
-        DiscordHelper.embed_message event.channel, "#{calculator.evaluate(math_str)}, tin em đi, chắc chắn đúng 🙃"
+
+        event.message.react "💡"
+
+        bot.add_await(:"check_math#{event.message.id}", Discordrb::Events::ReactionAddEvent, emoji: "💡") do |reaction_event|
+          nickname = reaction_event.user.nickname.gsub(" ", "")
+          if DB.check_math_user(reaction_event.user)
+            #  && nickname == event.message.embeds.first.footer.text.delete("Request by d")
+            question = event.message.embeds[0].description
+            math_str = question.split("\n").first
+            DiscordHelper.embed_message event.channel, "💋 #{calculator.evaluate(math_str)} 💋"
+          else
+            DiscordHelper.embed_message event.channel, "Này <@#{reaction_event.user.id}>, nộp cho rain **2000π** rồi em sẽ bày toán cho 💵\n
+              Dịch vụ uy tín 🛡 chất lượng 🛡 tính sai không lấy tiền"
+          end
+        end
+
+
       end
 
+    end
+  end
+
+  bot.command :add_math do |event|
+    next if event.user.id != 388659492071669760
+    user = event.message.mentions.first
+    if user
+      DB.add_math_user user
+      DiscordHelper.embed_message event.channel, "🤝 🤝 Cảm ơn #{user.username} đã tin tuởng sử dụng dịch vụ của chúng tôi 🤝 🤝"
     end
   end
 
@@ -220,6 +246,7 @@ class Bot
   end
 
   bot.command :creator do |event|
+    next if event.user.id != 388659492071669760
     binding.pry
   end
 

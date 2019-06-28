@@ -2,6 +2,7 @@ module DB
   database = Sequel.connect("sqlite://demosqlite.sqlite3")
 
   @@users = database.from(:users)
+  @@maths = database.from(:maths)
   @@confessions = database.from(:confessions)
 
   def self.add_point user
@@ -18,6 +19,16 @@ module DB
 
     current_user = @@users.where(user_id: user.id)
     current_user.get :point
+  end
+
+  def self.check_math_user user
+    return @@maths.where(user_id: user.id).any?
+  end
+
+  def self.add_math_user user
+    unless @@maths.where(user_id: user.id).any?
+      @@maths.insert(user_id: user.id)
+    end
   end
 
   def self.get_all
