@@ -11,6 +11,7 @@ require_relative "db"
 require_relative "sound_of_text"
 require_relative "weather_api"
 require_relative "wit_api"
+require_relative "ocr_api"
 require_relative "crawler_chords"
 require_relative "discord_helper"
 
@@ -36,18 +37,16 @@ class Bot
       title = event.message.embeds[0].author.name
 
       if title.include?("Quick math")
-
         event.message.react "💡"
-
         bot.add_await(:"check_math#{event.message.id}", Discordrb::Events::ReactionAddEvent, emoji: "💡") do |reaction_event|
           nickname = reaction_event.user.nickname.gsub(" ", "")
           if DB.check_math_user(reaction_event.user)
             #  && nickname == event.message.embeds.first.footer.text.delete("Request by d")
-            question = event.message.embeds[0].description
-            math_str = question.split("\n").first
+            img_url = event.message.attachments.first.url
+            math_str = OcrAPI.parse_image img_url
             DiscordHelper.embed_message event.channel, "💋 #{calculator.evaluate(math_str)} 💋"
           else
-            DiscordHelper.embed_message event.channel, "Này <@#{reaction_event.user.id}>, nộp cho rain **2000π** rồi em sẽ bày toán cho 💵\n
+            DiscordHelper.embed_message event.channel, "Này <@#{reaction_event.user.id}>, nộp cho rain **1000π** rồi em sẽ bày toán cho 💵\n
               Dịch vụ uy tín 🛡 chất lượng 🛡 tính sai không lấy tiền"
           end
         end
