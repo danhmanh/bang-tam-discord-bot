@@ -57,6 +57,14 @@ class Bot
     end
   end
 
+  bot.message(contains: ".rob") do |event|
+    if event.message.content == ".rob <@111352045251895296>"
+      message = "Địp mẹ mài <@#{event.user.id}> quân mất dại.\nLàm người thì khó, mà làm ||chó|| thì dễ nhá ! 🤬"
+      DiscordHelper.embed_message event.channel, message, 13632027
+    end
+  end
+
+
   bot.command :add_math do |event|
     next if event.user.id != 388659492071669760
     user = event.message.mentions.first
